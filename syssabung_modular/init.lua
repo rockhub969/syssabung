@@ -108,6 +108,46 @@ end
 
 -- 2. Muat Core Context Engine
 local Context = import("core/context.lua")
+local UpdateHub = Context.UpdateHub
+local chickenMap = Context.chickenMap
+local chickenNames = Context.chickenNames
+local invokeRemote = Context.invokeRemote
+local notify = Context.notify
+local printLog = Context.printLog
+local logError = Context.logError
+local saveConfig = Context.saveConfig
+local parseToggle = Context.parseToggle
+local scanFlockChickens = Context.scanFlockChickens
+local cleanESP = Context.cleanESP
+local createESPHighlight = Context.createESPHighlight
+local createESPBillboard = Context.createESPBillboard
+local collectMyNestEggs = Context.collectMyNestEggs
+local findMyRecycler = Context.findMyRecycler
+local enableNoclip = Context.enableNoclip
+local disableNoclip = Context.disableNoclip
+local safeWalkTo = Context.safeWalkTo
+local getMyChickenBody = Context.getMyChickenBody
+local getChickenStatus = Context.getChickenStatus
+local isChickenAtBase = Context.isChickenAtBase
+local isChickenHpFull = Context.isChickenHpFull
+local getCurrentFloor = Context.getCurrentFloor
+local getRebirthCount = Context.getRebirthCount
+local getExactRebirthRequirement = Context.getExactRebirthRequirement
+local getRebirthRequirement = Context.getRebirthRequirement
+local getRealBackpackCount = Context.getRealBackpackCount
+local getCoopPosition = Context.getCoopPosition
+local getFrontOfCoopPosition = Context.getFrontOfCoopPosition
+local getCoopAndFeederStats = Context.getCoopAndFeederStats
+local executeSellChickens = Context.executeSellChickens
+local executeFuseChickens = Context.executeFuseChickens
+local executePromoteSelectedSpecies = Context.executePromoteSelectedSpecies
+local updatePromoteStatusDisplay = Context.updatePromoteStatusDisplay
+local updatePromoteFodders = Context.updatePromoteFodders
+local updateAvailableSkills = Context.updateAvailableSkills
+local isHeldBySomeone = Context.isHeldBySomeone
+local fireCollectEvents = Context.fireCollectEvents
+local dismissTowerKOUI = Context.dismissTowerKOUI
+local triggerWebhookRebirthEvent = Context.triggerWebhookRebirthEvent
 if getgenv then
     getgenv().SysHubContext = Context
 end
@@ -1501,7 +1541,7 @@ task.spawn(function()
     while true do
         task.wait(0.25)
         if UpdateHub.autoDeliverJurassicEggs and not UpdateHub.isDeliveringJurassicEgg then
-            local isLive = UpdateHub.isJurassicEggEventActive()
+            local isLive = false; pcall(function() if type(UpdateHub.isJurassicEggEventActive) == "function" then isLive = UpdateHub.isJurassicEggEventActive() end end)
             if isLive then
                 wasEventActive = true
                 returnedAfterEvent = false
@@ -1667,7 +1707,7 @@ task.spawn(function()
                     returnedAfterEvent = true
                     if UpdateHub.autoReturnToCoopAfterEvent ~= false then
                         task.wait(1.0)
-                        UpdateHub.returnToFrontOfCoop()
+                        pcall(function() if type(UpdateHub.returnToFrontOfCoop) == "function" then pcall(function() if type(UpdateHub.returnToFrontOfCoop) == "function" then UpdateHub.returnToFrontOfCoop() end end) end end)
                     end
                 end
                 task.wait(2.5)
@@ -1736,6 +1776,6 @@ end)
 
 task.spawn(function()
     task.wait(1.5)
-    scanFlockChickens()
+    pcall(function() if type(scanFlockChickens) == "function" then scanFlockChickens() elseif Context and type(Context.scanFlockChickens) == "function" then Context.scanFlockChickens() end end)
 end)
 
