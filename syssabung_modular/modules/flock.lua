@@ -20,6 +20,20 @@ return function(Context, FlockTab)
     local getSharedDataServiceClient = Context.getSharedDataServiceClient
     local formatSpeciesName = Context.formatSpeciesName
     local detectChickenRarity = Context.detectChickenRarity
+    local FlockTab = FlockTab or Context.FlockTab or (getgenv and getgenv().FlockTab)
+    local promoteTargetList = Context.promoteTargetList or (getgenv and getgenv().promoteTargetList) or {"Belum di-refresh (Klik tombol Refresh)"}
+    local promoteFodderList = Context.promoteFodderList or (getgenv and getgenv().promoteFodderList) or {"Pilih ayam target terlebih dahulu"}
+    local promoteTargetMap = Context.promoteTargetMap or (getgenv and getgenv().promoteTargetMap) or {}
+    local promoteFodderMap = Context.promoteFodderMap or (getgenv and getgenv().promoteFodderMap) or {}
+    local selectedPromoteFoddersMap = Context.selectedPromoteFoddersMap or (getgenv and getgenv().selectedPromoteFoddersMap) or {}
+    local availableFuseSkills = Context.availableFuseSkills or (getgenv and getgenv().availableFuseSkills) or {"Stormcall", "Final Grace", "Lightning Strike", "Inferno Breath", "Void Pulse", "Golden Touch"}
+    local chickenNames = Context.chickenNames or (getgenv and getgenv().chickenNames) or {"Buka menu Flock di game lalu klik Refresh!"}
+    local favoritedChickenIds = Context.favoritedChickenIds or (getgenv and getgenv().favoritedChickenIds) or {}
+    local promotedChickenIds = Context.promotedChickenIds or (getgenv and getgenv().promotedChickenIds) or {}
+    local selectedSellRarities = Context.selectedSellRarities or (getgenv and getgenv().selectedSellRarities) or {}
+    local autoPromote = Context.autoPromote or (getgenv and getgenv().autoPromote) or false
+    local autoFuse = Context.autoFuse or (getgenv and getgenv().autoFuse) or false
+    local autoSellChickens = Context.autoSellChickens or (getgenv and getgenv().autoSellChickens) or false
 
 -- [TAB 4: CHICKEN]
 -- ==============================================================================

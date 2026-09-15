@@ -175,6 +175,30 @@ else
     aboutTab:Paragraph({ Title = "Error loading Discord info", Desc = ErrorMessage or "Unknown error", Image = "triangle-alert", ImageSize = 26, Color = "Red" })
 end
 
+-- Export Tabs to Context and getgenv (Aksesibilitas Antar-Modul)
+Context.PlayerTab = PlayerTab
+Context.FarmTab = FarmTab
+Context.CoopTab = CoopTab
+Context.FlockTab = FlockTab
+Context.EventTab = EventTab
+Context.RewardsTab = RewardsTab
+Context.MiscTab = MiscTab
+Context.WebhookTab = WebhookTab
+Context.aboutTab = aboutTab
+
+if getgenv then
+    getgenv().PlayerTab = PlayerTab
+    getgenv().FarmTab = FarmTab
+    getgenv().CoopTab = CoopTab
+    getgenv().FlockTab = FlockTab
+    getgenv().EventTab = EventTab
+    getgenv().RewardsTab = RewardsTab
+    getgenv().MiscTab = MiscTab
+    getgenv().WebhookTab = WebhookTab
+    getgenv().aboutTab = aboutTab
+end
+
+
 -- ==============================================================================
 
 -- 4. Helper Muat Modul dengan Error Reporting Transparan

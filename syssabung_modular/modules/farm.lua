@@ -23,6 +23,7 @@ return function(Context, FarmTab)
     local getRebirthCount = Context.getRebirthCount
     local getExactRebirthRequirement = Context.getExactRebirthRequirement
     local getChickenStatus = Context.getChickenStatus
+    local FlockTab = Context.FlockTab or (getgenv and getgenv().FlockTab)
 
 -- [TAB: FARM]
 -- ==============================================================================

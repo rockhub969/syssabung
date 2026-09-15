@@ -17,6 +17,7 @@ return function(Context, CoopTab)
     local parseToggle = Context.parseToggle
     local expandDropdown = Context.expandDropdown
     local collectMyNestEggs = Context.collectMyNestEggs
+    local FlockTab = Context.FlockTab or (getgenv and getgenv().FlockTab)
 
 -- [TAB: COOP]
 -- ==============================================================================
