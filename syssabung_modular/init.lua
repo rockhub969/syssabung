@@ -1,3 +1,13 @@
+-- ANTI-DUPLICATE SINGLE INSTANCE GUARD (Mencegah lag tumpukan loop saat re-execute)
+local currentInstanceId = (getgenv and getgenv().SysHubInstanceId or 0) + 1
+if getgenv then
+    getgenv().SysHubInstanceId = currentInstanceId
+end
+
+local function isCurrentInstance()
+    return not getgenv or getgenv().SysHubInstanceId == currentInstanceId
+end
+
 -- ==============================================================================
 --              SYSHUB | GROW A CHICKEN FIGHTER (MODULAR INIT)
 -- ==============================================================================
@@ -290,7 +300,7 @@ do
     end
 
     task.spawn(function()
-        while true do
+        while isCurrentInstance() do
             pcall(disableIdleKick)
             task.wait(25)
         end
@@ -414,7 +424,7 @@ local function applyStreamerMode()
 end
 
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         if not streamerMode then
             task.wait(2)
         else
@@ -426,7 +436,7 @@ end)
 
 -- REAL-TIME VISUAL ESP THREAD
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         if not espPlayerEnabled and not espEggEnabled and not espScrapEnabled then
             task.wait(1.5)
         else
@@ -518,7 +528,7 @@ end)
 -- AUTO PROMOTE ENGINE (STATUS & SUCCESS DRIVEN - ANTI-SPAM & CRASH PROOF)
 task.spawn(function()
     local isPromoteRunning = false
-    while true do
+    while isCurrentInstance() do
         task.wait(3)
         if autoPromote and not isPromoteRunning and not (UpdateHub.isUfoPriorityActive() or UpdateHub.isBossPriorityActive()) then
             isPromoteRunning = true
@@ -540,7 +550,7 @@ end)
 
 -- AUTO FUSE ENGINE (EVENT & STATUS DRIVEN - DENGAN NOTIFIKASI)
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         task.wait(2)
         if autoFuse and not (UpdateHub.isUfoPriorityActive() or UpdateHub.isBossPriorityActive()) then
             if fuseMainChickenName and fuseFodderChickenName and chickenMap[fuseMainChickenName] and chickenMap[fuseFodderChickenName] and fuseMainChickenName ~= fuseFodderChickenName then
@@ -556,7 +566,7 @@ end)
 
 -- AUTO SELL LOOP
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         task.wait(2)
         if autoSellChickens and not (UpdateHub.isUfoPriorityActive() or UpdateHub.isBossPriorityActive()) then
             pcall(function()
@@ -568,7 +578,7 @@ end)
 
 -- AUTO UPGRADE INCUBATOR LOOP
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         task.wait(delayUpgradeIncubator)
         if autoUpgradeIncubator then
             invokeRemote("IncubatorUpgrade")
@@ -611,7 +621,7 @@ task.spawn(function()
         end)
     end
 
-    while true do
+    while isCurrentInstance() do
         task.wait(2)
         if autoCollectNestEggs then
             local count = collectMyNestEggs(false)
@@ -624,7 +634,7 @@ end)
 
 -- AUTO FARM INCUBATOR CLAIM & PUT
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         task.wait(2)
         if autoClaimIncubator then
             invokeRemote("IncubatorClaim")
@@ -634,7 +644,7 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         task.wait(2.5)
         if autoPutIncubator and selectedChickenId then
             pcall(function()
@@ -653,7 +663,7 @@ end)
 
 -- AUTO CLAIM REWARDS BACKGROUND LOOP (AMAN & ANTI-CRASH)
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         task.wait(20)
         pcall(function()
             if UpdateHub.autoClaimCharmDust then
@@ -690,7 +700,7 @@ end)
 
 -- COOP UPGRADE LOOPS
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         if not autoUpgradeCoop and not autoUpgradeRecycler then
             task.wait(1)
         else
@@ -716,7 +726,7 @@ end)
 -- ==============================================================================
 task.spawn(function()
     local lastMonitorDesc = ""
-    while true do
+    while isCurrentInstance() do
         if not autoFastRebirth then
             task.wait(1.5)
         else
@@ -783,7 +793,7 @@ task.spawn(function()
     local lastRebirthTime = 0
     local lastRebirthedCount = nil
 
-    while true do
+    while isCurrentInstance() do
         if not autoFastRebirth then
             task.wait(1.5)
         else
@@ -975,7 +985,7 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         if not autoBuyFeeder then
             task.wait(1)
         else
@@ -995,7 +1005,7 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         if not autoUpgradeFeeder then
             task.wait(1)
         else
@@ -1022,7 +1032,7 @@ task.spawn(function()
     local towerWaitingForHeal = false
     local towerKOCount = 0
 
-    while true do
+    while isCurrentInstance() do
         if not autoTower then
             towerWaitingForHeal = false
             towerKOCount = 0
@@ -1133,7 +1143,7 @@ end)
 -- [15] THREAD AUTO SWEEP & DEPOSIT RECYCLER
 -- ==============================================================================
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         local shouldSweep = autoSweep and not (UpdateHub.isUfoPriorityActive() or UpdateHub.isBossPriorityActive())
         if not shouldSweep then
             task.wait(1)
@@ -1276,7 +1286,7 @@ end)
 -- [15] BACKGROUND LOOPS UNTUK FITUR UPDATE BARU
 -- ==============================================================================
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         task.wait(UpdateHub.delayArenaFight > 0 and UpdateHub.delayArenaFight or 3.0)
         if UpdateHub.autoArenaFight and not (UpdateHub.isUfoPriorityActive() or UpdateHub.isBossPriorityActive()) then
             UpdateHub.executeArenaAutoFight()
@@ -1285,7 +1295,7 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         if not UpdateHub.autoRollCharms then
             task.wait(1.5)
         else
@@ -1297,7 +1307,7 @@ end)
 
 
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         if not UpdateHub.autoUfoEvent then
             if UpdateHub.previousActiveChickenId then
                 pcall(function()
@@ -1310,7 +1320,7 @@ task.spawn(function()
             UpdateHub.lastChaosEntryTime = nil
             task.wait(1.5)
         else
-            task.wait(0.35)
+            task.wait(1.0)
             local isLive = UpdateHub.isUfoEventActive()
             local now = os.clock()
 
@@ -1366,7 +1376,7 @@ task.spawn(function()
                         or (now - (UpdateHub.lastUfoSendTime or 0) > 12)
 
                     -- Cooldown minimal 3 detik sejak kirim terakhir agar tidak spam order saat ayam mulai lari dari base
-                    if canSend and (now - (UpdateHub.lastUfoSendTime or 0) >= 3) then
+                    if canSend and (now - (UpdateHub.lastUfoSendTime or 0) >= 5) then
                         printLog("Auto UFO Event", "Event UFO sedang aktif! Mengirim ayam target ke arena tengah...")
                         UpdateHub.executeSendChickenToUfoBeam(true)
                         UpdateHub.ufoChickenStatus = "IN_TRANSIT"
@@ -1403,7 +1413,7 @@ end)
 
 -- [15B] BACKGROUND LOOP FITUR AUTO CHICKEN BOSS EVENT
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         if not UpdateHub.autoBossEvent then
             if UpdateHub.previousActiveChickenIdBoss then
                 pcall(function()
@@ -1522,7 +1532,7 @@ printLog("Init", "SysHub berhasil dimuat dengan sempurna!")
 -- ==============================================================================
 -- 1. Loop Auto Klaim Jurassic Pass & Quests
 task.spawn(function()
-    while true do
+    while isCurrentInstance() do
         task.wait(10)
         if UpdateHub.autoClaimJurassicPass then
             pcall(UpdateHub.claimJurassicPassPrizes)
@@ -1538,7 +1548,7 @@ task.spawn(function()
     local wasEventActive = false
     local returnedAfterEvent = false
 
-    while true do
+    while isCurrentInstance() do
         task.wait(0.25)
         if UpdateHub.autoDeliverJurassicEggs and not UpdateHub.isDeliveringJurassicEgg then
             local isLive = false; pcall(function() if type(UpdateHub.isJurassicEggEventActive) == "function" then isLive = UpdateHub.isJurassicEggEventActive() end end)
@@ -1754,7 +1764,7 @@ task.spawn(function()
         end
     end
 
-    while true do
+    while isCurrentInstance() do
         task.wait(5)
         local isLive = UpdateHub.isJurassicEggEventActive()
         pcall(function()

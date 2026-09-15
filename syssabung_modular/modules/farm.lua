@@ -494,168 +494,74 @@ ArenaBattleSec:Button({
 local lastUfoCheckTime = 0
 local cachedUfoActive = false
 UpdateHub.isUfoEventActive = function()
-    -- 1. Cek event live flag dari network event server (0 delay)
+    -- 1. Cek event live flag dari network listener (Instant, 0ms, 0 CPU)
     if UpdateHub.ufoEventLive == true then
         return true
     end
 
     -- 2. Buffer Cooldown 60 Detik setelah event UFO selesai
-    -- Mencegah false positive dari sisa teks banner / billboard yang belum di-despawn
     local now = os.clock()
     if UpdateHub.lastUfoEndedTimestamp and (now - UpdateHub.lastUfoEndedTimestamp < 60) then
         cachedUfoActive = false
         return false
     end
 
-    -- Throttle fallback polling maksimal 1x per 1.5 detik
-    if now - lastUfoCheckTime < 1.5 then
+    -- 3. Cache hasil polling selama 4 detik (Mencegah stutter & lag freeze)
+    if now - lastUfoCheckTime < 4.0 then
         return cachedUfoActive
     end
     lastUfoCheckTime = now
 
-    -- 3. Cek remote function LiveEventGetActive (Autoritatif dari Server game)
-    pcall(function()
-        local rf = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("LiveEventGetActive")
-        if not rf then
-            rf = ReplicatedStorage:FindFirstChild("LiveEventGetActive", true)
-        end
-        if rf and rf:IsA("RemoteFunction") then
-            local res = rf:InvokeServer()
-            if res then
-                if type(res) == "boolean" then
-                    if res == true then
-                        cachedUfoActive = true
-                        return true
-                    end
-                elseif type(res) == "table" then
-                    local isExplicitlyInactive = (res.active == false) or (res.isActive == false) or (res.isLive == false)
-                    local stateStr = tostring(res.state or res.status or ""):lower()
-                    if stateStr:find("end") or stateStr:find("finish") or stateStr:find("over") then
-                        isExplicitlyInactive = true
-                    end
-
-                    if not isExplicitlyInactive then
-                        for k, v in pairs(res) do
-                            local kStr = tostring(k):lower()
-                            local vStr = tostring(v):lower()
-                            if (kStr:find("ufo") or kStr:find("invasion") or vStr:find("ufo") or vStr:find("invasion")) then
-                                if v ~= false and not vStr:find("false") and not vStr:find("ended") and not vStr:find("selesai") and not vStr:find("finish") and not kStr:find("ended") then
-                                    cachedUfoActive = true
-                                    return true
-                                end
-                            end
-                        end
-                    end
-                elseif type(res) == "string" then
-                    local str = res:lower()
-                    if (str:find("ufo") or str:find("invasion")) and not str:find("ended") and not str:find("selesai") and not str:find("finish") and not str:find("false") then
-                        cachedUfoActive = true
-                        return true
-                    end
-                end
-            end
-        end
-        return false
-    end)
-    if cachedUfoActive == true then
-        return true
-    end
-
-    -- 4. Cek Billboard 3D Game "UFO INVASION LIVE" yang melayang di atas Pit / Arena
-    local pit = Workspace:FindFirstChild("Pit") or (Workspace:FindFirstChild("World") and Workspace.World:FindFirstChild("Pit"))
-    if pit then
-        local found3DBillboard = false
+    -- 4. Cek Remote Function secara asynchronous di background agar TIDAK MEMBEKUKAN game
+    task.spawn(function()
         pcall(function()
-            for _, desc in ipairs(pit:GetDescendants()) do
-                if (desc:IsA("BillboardGui") or desc:IsA("SurfaceGui")) and desc.Enabled == true then
-                    for _, t in ipairs(desc:GetDescendants()) do
-                        if t:IsA("TextLabel") and t.Visible == true and (t.TextTransparency or 0) < 0.8 then
-                            local txt = (t.Text or ""):lower()
-                            if (txt:find("ufo") or txt:find("invasion"))
-                                and not txt:find("ended")
-                                and not txt:find("selesai")
-                                and not txt:find("over")
-                                and not txt:find("finish")
-                                and not txt:find("next")
-                                and not txt:find("starts in")
-                                and not txt:find("starting")
-                                and not txt:find("cooldown") then
-                                if txt:find("live") or txt:find("active") or txt:find("invasion") or txt:match("%d+:%d%d") then
-                                    found3DBillboard = true
-                                    return
-                                end
-                            end
-                        end
-                    end
-                end
+            local rf = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("LiveEventGetActive")
+            if not rf then
+                rf = ReplicatedStorage:FindFirstChild("LiveEventGetActive", true)
             end
-        end)
-        if found3DBillboard then
-            cachedUfoActive = true
-            return true
-        end
-    end
-
-    -- 5. Cek Tombol HUD UFO Countdown Timer di PlayerGui (pojok kanan bawah layar game)
-    local pg = player:FindFirstChild("PlayerGui")
-    if pg then
-        local foundHudButton = false
-        pcall(function()
-            for _, gui in ipairs(pg:GetChildren()) do
-                local gName = gui.Name:lower()
-                local isScriptGui = gName:find("wind")
-                    or gName:find("syshub")
-                    or gName:find("hub")
-                    or gName:find("dropdown")
-                    or (gui:FindFirstChild("WindUI") ~= nil)
-                    or (gui:FindFirstChild("Holder") ~= nil)
-
-                if gui:IsA("ScreenGui") and gui.Enabled and not isScriptGui then
-                    for _, desc in ipairs(gui:GetDescendants()) do
-                        if desc:IsA("TextLabel") and desc.Visible and (desc.TextTransparency or 0) < 0.8 then
-                            local txt = desc.Text or ""
-                            local txtLower = txt:lower()
-
-                            local isEndedText = txtLower:find("ended")
-                                or txtLower:find("selesai")
-                                or txtLower:find("over")
-                                or txtLower:find("finish")
-                                or txtLower:find("claim")
-                                or txtLower:find("reward")
-                                or txtLower:find("winner")
-                                or txtLower:find("next")
-                                or txtLower:find("starts in")
-
-                            if not isEndedText then
-                                -- Timer countdown "2:23" di tombol HUD UFO (bukan 0:00)
-                                if txt:match("^%d+:%d%d$") and txt ~= "0:00" and txt ~= "00:00" then
-                                    local pName = (desc.Parent and desc.Parent.Name or ""):lower()
-                                    local gpName = (desc.Parent and desc.Parent.Parent and desc.Parent.Parent.Name or ""):lower()
-                                    if pName:find("ufo") or pName:find("invasion") or gpName:find("ufo") or gpName:find("invasion") then
-                                        foundHudButton = true
+            if rf and rf:IsA("RemoteFunction") then
+                local res = rf:InvokeServer()
+                if res then
+                    if type(res) == "boolean" then
+                        cachedUfoActive = res
+                    elseif type(res) == "table" then
+                        local isEnded = (res.active == false) or (res.isActive == false) or (res.isLive == false)
+                        if not isEnded then
+                            for k, v in pairs(res) do
+                                local kStr = tostring(k):lower()
+                                local vStr = tostring(v):lower()
+                                if (kStr:find("ufo") or kStr:find("invasion") or vStr:find("ufo") or vStr:find("invasion")) then
+                                    if v ~= false and not vStr:find("false") and not vStr:find("ended") then
+                                        cachedUfoActive = true
                                         return
                                     end
                                 end
-
-                                -- Banner teks resmi game "UFO INVASION LIVE"
-                                if (txtLower:find("ufo invasion") or (txtLower:find("ufo") and txtLower:find("live"))) then
-                                    foundHudButton = true
-                                    return
-                                end
                             end
                         end
                     end
                 end
             end
         end)
-        if foundHudButton then
-            cachedUfoActive = true
-            return true
-        end
+    end)
+
+    -- 5. Cek ringan 3D Billboard di Pit tanpa deep scan bertingkat
+    local pit = Workspace:FindFirstChild("Pit") or (Workspace:FindFirstChild("World") and Workspace.World:FindFirstChild("Pit"))
+    if pit then
+        pcall(function()
+            local bb = pit:FindFirstChildWhichIsA("BillboardGui", true)
+            if bb and bb.Enabled then
+                local lbl = bb:FindFirstChildWhichIsA("TextLabel", true)
+                if lbl and lbl.Visible then
+                    local txt = (lbl.Text or ""):lower()
+                    if (txt:find("ufo") or txt:find("invasion")) and not txt:find("ended") and not txt:find("cooldown") then
+                        cachedUfoActive = true
+                    end
+                end
+            end
+        end)
     end
 
-    cachedUfoActive = false
-    return false
+    return cachedUfoActive == true
 end
 
 UpdateHub.isUfoPriorityActive = function()
@@ -1143,7 +1049,11 @@ UpdateHub.executeSendChickenToUfoBeam = function(silent)
         end
 
         if not chickenMap or next(chickenMap) == nil or not chickenMap[targetName] then
-            scanFlockChickens()
+            local nowScan = os.clock()
+            if nowScan - (UpdateHub.lastUfoFlockScanTime or 0) > 15 then
+                UpdateHub.lastUfoFlockScanTime = nowScan
+                task.spawn(scanFlockChickens)
+            end
         end
 
         local targetData = chickenMap and chickenMap[targetName]
@@ -1233,31 +1143,13 @@ UpdateHub.executeSendChickenToUfoBeam = function(silent)
             end
         end)
 
-        -- Trigger tombol HUD 'pit' / 'TO CHAOS' di PlayerGui jika ada
+        -- Trigger sinyal server chaos secara instan tanpa traversal GUI
         pcall(function()
-            local pg = player:FindFirstChild("PlayerGui")
-            if pg then
-                for _, desc in ipairs(pg:GetDescendants()) do
-                    if desc:IsA("GuiButton") or desc:IsA("TextButton") or desc:IsA("ImageButton") then
-                        local txt = (desc:IsA("TextButton") and desc.Text or ""):lower()
-                        local n = desc.Name:lower()
-                        if n == "pit" or txt:find("to chaos") or txt:find("chaos") then
-                            if firesignal then
-                                firesignal(desc.MouseButton1Click)
-                                firesignal(desc.Activated)
-                            end
-                        end
-                    elseif desc:IsA("TextLabel") then
-                        local txt = (desc.Text or ""):lower()
-                        if txt:find("to chaos") or txt:find("chaos") then
-                            local parentBtn = desc:FindFirstAncestorWhichIsA("GuiButton")
-                            if parentBtn and firesignal then
-                                firesignal(parentBtn.MouseButton1Click)
-                                firesignal(parentBtn.Activated)
-                            end
-                        end
-                    end
-                end
+            local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+            if remotes and remotes:FindFirstChild("SetChickenOrder") then
+                remotes.SetChickenOrder:FireServer("chaos")
+            else
+                invokeRemote("SetChickenOrder", "chaos")
             end
         end)
 
