@@ -31,11 +31,11 @@ syssabung_modular/
 2. Upload seluruh isi folder `syssabung_modular` ke repository tersebut.
 3. Buka file `loader.lua`, ganti bagian:
    ```lua
-   local GITHUB_BASE = "https://raw.githubusercontent.com/USERNAME_ANDA/syssabung/main/syssabung_modular/"
+   local GITHUB_BASE = "https://raw.githubusercontent.com/rockhub969/syssabung/main/syssabung_modular/"
    ```
 4. Di executor Roblox Anda, jalankan 1 baris berikut:
    ```lua
-   loadstring(game:HttpGet("https://raw.githubusercontent.com/USERNAME_ANDA/syssabung/main/syssabung_modular/loader.lua"))()
+   loadstring(game:HttpGet("https://raw.githubusercontent.com/rockhub969/syssabung/main/syssabung_modular/loader.lua"))()
    ```
 
 ### Metode B: Offline / Lokal di Executor

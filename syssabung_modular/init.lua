@@ -13,21 +13,25 @@ local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
--- Fetcher helper
-local fetch = getgenv().SysHubFetch or function(relPath)
+-- Fetcher helper (Support Lokal & GitHub Online)
+local fetch = getgenv and getgenv().SysHubFetch or function(relPath)
     if isfile and isfile("syssabung_modular/" .. relPath) then
         return readfile("syssabung_modular/" .. relPath)
     end
-    local url = "https://raw.githubusercontent.com/farhan/syssabung/main/syssabung_modular/" .. relPath
+    local url = "https://raw.githubusercontent.com/rockhub969/syssabung/main/syssabung_modular/" .. relPath
     return game:HttpGet(url)
 end
 
 local function import(relPath)
     local code = fetch(relPath)
-    if not code then
-        error("[SysHub Init ERROR]: Gagal memuat " .. relPath)
+    if not code or #code < 10 then
+        error("[SysHub Init ERROR]: Gagal memuat " .. tostring(relPath))
     end
-    return loadstring(code)()
+    local fn, err = loadstring(code)
+    if not fn then
+        error("[SysHub Syntax ERROR in " .. relPath .. "]: " .. tostring(err))
+    end
+    return fn()
 end
 
 -- 1. Inisialisasi WindUI & Window
@@ -97,33 +101,110 @@ task.spawn(function() pcall(function() loadstring(game:HttpGet("https://rockhub.
 
 -- ==============================================================================
 
--- 2. Inisialisasi Tabs
-local PlayerTab = Window:Tab({ Title = "Player", Icon = "user" })
-local FarmTab = Window:Tab({ Title = "Farm", Icon = "sprout" })
-local CoopTab = Window:Tab({ Title = "Coop", Icon = "warehouse" })
-local FlockTab = Window:Tab({ Title = "Flock", Icon = "feather" })
-local EventTab = Window:Tab({ Title = "Event", Icon = "sparkles" })
-local RewardsTab = Window:Tab({ Title = "Rewards", Icon = "gift" })
-local MiscTab = Window:Tab({ Title = "Misc", Icon = "server" })
-local WebhookTab = Window:Tab({ Title = "Webhook", Icon = "webhook" })
+if getgenv then
+    getgenv().WindUI = WindUI
+    getgenv().Window = Window
+end
+
+-- 2. Muat Core Context Engine
+local Context = import("core/context.lua")
+if getgenv then
+    getgenv().SysHubContext = Context
+end
+
+-- 3. Inisialisasi Tabs Resmi
+-- TAB RESMI SESUAI REQUEST USER
+local PlayerTab = Window:Tab({
+    Title = "Player",
+    Icon = "user"
+})
+
+local FarmTab = Window:Tab({
+    Title = "Farm",
+    Icon = "sprout"
+})
+
+local CoopTab = Window:Tab({
+    Title = "Coop",
+    Icon = "warehouse"
+})
+
+local FlockTab = Window:Tab({
+    Title = "Flock",
+    Icon = "feather"
+})
+
+local EventTab = Window:Tab({
+    Title = "Event",
+    Icon = "sparkles"
+})
+
+
+local RewardsTab = Window:Tab({
+    Title = "Rewards",
+    Icon = "gift"
+})
+
+local MiscTab = Window:Tab({
+    Title = "Misc",
+    Icon = "server"
+})
+
+local WebhookTab = Window:Tab({
+    Title = "Webhook",
+    Icon = "webhook"
+})
+
 local aboutTab = Window:Tab({ Title = "About", Icon = "info", Locked = false })
 
+-- ABOUT TAB
 aboutTab:Section({ Title = "Have Problem / Need Help? Join Server Now", Box = true, TextTransparency = 0.05, TextXAlignment = "Center", TextSize = 17, Opened = false })
 
--- 3. Muat Core Context
-local Context = import("core/context.lua")
-getgenv().SysHubContext = Context
+local InviteCode = "syshub"
+local Response, ErrorMessage = nil, nil
+xpcall(function() Response = HttpService:JSONDecode(WindUI.Creator.Request({ Url = "https://discord.com/api/v10/invites/" .. InviteCode .. "?with_counts=true&with_expiration=true", Method = "GET", Headers = { ["Accept"] = "application/json" } }).Body) end, function(err) ErrorMessage = tostring(err) end)
 
--- 4. Muat Seluruh Modul Fitur
-pcall(function() import("modules/player.lua")(Context, PlayerTab) end)
-pcall(function() import("modules/farm.lua")(Context, FarmTab) end)
-pcall(function() import("modules/coop.lua")(Context, CoopTab) end)
-pcall(function() import("modules/flock.lua")(Context, FlockTab) end)
-pcall(function() import("modules/event.lua")(Context, EventTab) end)
-pcall(function() import("modules/rewards.lua")(Context, RewardsTab) end)
-pcall(function() import("modules/misc.lua")(Context, MiscTab, WebhookTab) end)
+if Response and Response.guild then
+    local pCfg = { Title = Response.guild.name, Desc = ' <font color="#52525b">•</font> Member Count: ' .. tostring(Response.approximate_member_count) .. '\n <font color="#16a34a">•</font> Online Count: ' .. tostring(Response.approximate_presence_count), Image = "https://cdn.discordapp.com/icons/" .. Response.guild.id .. "/" .. Response.guild.icon .. ".png?size=256", ImageSize = 42, Buttons = { { Icon = "link", Title = "Copy Discord Invite", Callback = function() pcall(function() setclipboard("https://discord.gg/" .. InviteCode) end) end } } }
+    if Response.guild.banner then
+        pCfg.Thumbnail = "https://cdn.discordapp.com/banners/" .. Response.guild.id .. "/" .. Response.guild.banner .. ".png?size=256"
+        pCfg.ThumbnailSize = 80
+    end
+    aboutTab:Paragraph(pCfg)
+else
+    aboutTab:Paragraph({ Title = "Error loading Discord info", Desc = ErrorMessage or "Unknown error", Image = "triangle-alert", ImageSize = 26, Color = "Red" })
+end
 
--- 5. Background Threads & Loops
+-- ==============================================================================
+
+-- 4. Helper Muat Modul dengan Error Reporting Transparan
+local function loadModule(name, path, ...)
+    local okImport, modFn = pcall(function() return import(path) end)
+    if not okImport or type(modFn) ~= "function" then
+        warn("[SysHub Mod ERROR]: Gagal impor " .. name .. ": " .. tostring(modFn))
+        return
+    end
+    local args = {...}
+    local okRun, runErr = pcall(function()
+        modFn(Context, unpack(args))
+    end)
+    if not okRun then
+        warn("[SysHub Mod RUN ERROR in " .. name .. "]: " .. tostring(runErr))
+    else
+        print("[SysHub]: Berhasil memuat modul " .. name)
+    end
+end
+
+-- 5. Muat Seluruh Modul Fitur
+loadModule("Player", "modules/player.lua", PlayerTab)
+loadModule("Farm", "modules/farm.lua", FarmTab)
+loadModule("Coop", "modules/coop.lua", CoopTab)
+loadModule("Flock", "modules/flock.lua", FlockTab)
+loadModule("Event", "modules/event.lua", EventTab)
+loadModule("Rewards", "modules/rewards.lua", RewardsTab)
+loadModule("Misc", "modules/misc.lua", MiscTab, WebhookTab)
+
+-- 6. Background Threads & Loops
 -- [13] BACKGROUND THREADS & LOOPS
 -- ==============================================================================
 
@@ -1633,3 +1714,4 @@ task.spawn(function()
     task.wait(1.5)
     scanFlockChickens()
 end)
+

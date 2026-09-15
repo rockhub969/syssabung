@@ -3,16 +3,27 @@
 -- ==============================================================================
 local Context = {}
 
-Context.Players = game:GetService("Players")
-Context.Workspace = game:GetService("Workspace")
-Context.ReplicatedStorage = game:GetService("ReplicatedStorage")
-Context.CoreGui = game:GetService("CoreGui")
-Context.RunService = game:GetService("RunService")
-Context.UserInputService = game:GetService("UserInputService")
-Context.Lighting = game:GetService("Lighting")
-Context.TeleportService = game:GetService("TeleportService")
-Context.HttpService = game:GetService("HttpService")
-Context.player = Context.Players.LocalPlayer
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local player = Players.LocalPlayer
+
+Context.Players = Players
+Context.Workspace = Workspace
+Context.ReplicatedStorage = ReplicatedStorage
+Context.CoreGui = CoreGui
+Context.RunService = RunService
+Context.UserInputService = UserInputService
+Context.Lighting = Lighting
+Context.TeleportService = TeleportService
+Context.HttpService = HttpService
+Context.player = player
 
 -- [CONFIG SYSTEM]: MANUAL CONFIGURATION MANAGER (ELEMENT REGISTRY & STORAGE)
 -- ==============================================================================
@@ -182,69 +193,7 @@ expandDropdown = function(dd, width)
     end)
 end
 
--- TAB RESMI SESUAI REQUEST USER
-local PlayerTab = Window:Tab({
-    Title = "Player",
-    Icon = "user"
-})
 
-local FarmTab = Window:Tab({
-    Title = "Farm",
-    Icon = "sprout"
-})
-
-local CoopTab = Window:Tab({
-    Title = "Coop",
-    Icon = "warehouse"
-})
-
-local FlockTab = Window:Tab({
-    Title = "Flock",
-    Icon = "feather"
-})
-
-local EventTab = Window:Tab({
-    Title = "Event",
-    Icon = "sparkles"
-})
-
-
-local RewardsTab = Window:Tab({
-    Title = "Rewards",
-    Icon = "gift"
-})
-
-local MiscTab = Window:Tab({
-    Title = "Misc",
-    Icon = "server"
-})
-
-local WebhookTab = Window:Tab({
-    Title = "Webhook",
-    Icon = "webhook"
-})
-
-local aboutTab = Window:Tab({ Title = "About", Icon = "info", Locked = false })
-
--- ABOUT TAB
-aboutTab:Section({ Title = "Have Problem / Need Help? Join Server Now", Box = true, TextTransparency = 0.05, TextXAlignment = "Center", TextSize = 17, Opened = false })
-
-local InviteCode = "syshub"
-local Response, ErrorMessage = nil, nil
-xpcall(function() Response = HttpService:JSONDecode(WindUI.Creator.Request({ Url = "https://discord.com/api/v10/invites/" .. InviteCode .. "?with_counts=true&with_expiration=true", Method = "GET", Headers = { ["Accept"] = "application/json" } }).Body) end, function(err) ErrorMessage = tostring(err) end)
-
-if Response and Response.guild then
-    local pCfg = { Title = Response.guild.name, Desc = ' <font color="#52525b">•</font> Member Count: ' .. tostring(Response.approximate_member_count) .. '\n <font color="#16a34a">•</font> Online Count: ' .. tostring(Response.approximate_presence_count), Image = "https://cdn.discordapp.com/icons/" .. Response.guild.id .. "/" .. Response.guild.icon .. ".png?size=256", ImageSize = 42, Buttons = { { Icon = "link", Title = "Copy Discord Invite", Callback = function() pcall(function() setclipboard("https://discord.gg/" .. InviteCode) end) end } } }
-    if Response.guild.banner then
-        pCfg.Thumbnail = "https://cdn.discordapp.com/banners/" .. Response.guild.id .. "/" .. Response.guild.banner .. ".png?size=256"
-        pCfg.ThumbnailSize = 80
-    end
-    aboutTab:Paragraph(pCfg)
-else
-    aboutTab:Paragraph({ Title = "Error loading Discord info", Desc = ErrorMessage or "Unknown error", Image = "triangle-alert", ImageSize = 26, Color = "Red" })
-end
-
--- ==============================================================================
 -- [2] LOGGING & NOTIFICATION HELPERS
 -- ==============================================================================
 local function logError(featureName, err)
@@ -3273,5 +3222,64 @@ local function executeFuseChickens()
 end
 
 -- ==============================================================================
+
+-- EXPORT ALL STATE TABLES & FUNCTIONS TO CONTEXT & GETGENV
+Context.UpdateHub = UpdateHub
+Context.chickenMap = chickenMap
+Context.chickenNames = chickenNames
+Context.registeredUiElements = registeredUiElements
+Context.invokeRemote = invokeRemote
+Context.notify = notify
+Context.printLog = printLog
+Context.logError = logError
+Context.saveConfig = saveConfig
+Context.parseToggle = parseToggle
+Context.expandDropdown = expandDropdown
+Context.scanFlockChickens = scanFlockChickens
+Context.cleanESP = cleanESP
+Context.createESPBillboard = createESPBillboard
+Context.createESPHighlight = createESPHighlight
+Context.collectMyNestEggs = collectMyNestEggs
+Context.findMyRecycler = findMyRecycler
+Context.enableNoclip = enableNoclip
+Context.disableNoclip = disableNoclip
+Context.safeWalkTo = safeWalkTo
+Context.getMyChickenBody = getMyChickenBody
+Context.getChickenStatus = getChickenStatus
+Context.isChickenAtBase = isChickenAtBase
+Context.isChickenHpFull = isChickenHpFull
+Context.getCurrentFloor = getCurrentFloor
+Context.getRebirthCount = getRebirthCount
+Context.getExactRebirthRequirement = getExactRebirthRequirement
+Context.getRebirthRequirement = getRebirthRequirement
+Context.getRealBackpackCount = getRealBackpackCount
+Context.getCoopPosition = getCoopPosition
+Context.getFrontOfCoopPosition = getFrontOfCoopPosition
+Context.getCoopAndFeederStats = getCoopAndFeederStats
+Context.getSharedDataServiceClient = getSharedDataServiceClient
+Context.formatSpeciesName = formatSpeciesName
+Context.detectChickenRarity = detectChickenRarity
+Context.getChickenStarCount = getChickenStarCount
+Context.isChickenPromoted = isChickenPromoted
+Context.executeSellChickens = executeSellChickens
+Context.executeFuseChickens = executeFuseChickens
+Context.executePromoteSelectedSpecies = executePromoteSelectedSpecies
+Context.updatePromoteStatusDisplay = updatePromoteStatusDisplay
+Context.updatePromoteFodders = updatePromoteFodders
+Context.updateAvailableSkills = updateAvailableSkills
+Context.promoCodesList = promoCodesList
+Context.customPromoCode = customPromoCode
+Context.favoritedChickenIds = favoritedChickenIds
+Context.promotedChickenIds = promotedChickenIds
+Context.MAX_CAPACITY = MAX_CAPACITY
+
+-- Global bridge for Roblox executor environment
+if getgenv then
+    local env = getgenv()
+    for k, v in pairs(Context) do
+        env[k] = v
+    end
+    env.SysHubContext = Context
+end
 
 return Context

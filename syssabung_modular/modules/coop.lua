@@ -18,23 +18,6 @@ return function(Context, CoopTab)
     local expandDropdown = Context.expandDropdown
     local collectMyNestEggs = Context.collectMyNestEggs
 
-    local autoUpgradeCoop = Context.autoUpgradeCoop
-    local delayCoop = Context.delayCoop
-    local autoUpgradeRecycler = Context.autoUpgradeRecycler
-    local delayRecycler = Context.delayRecycler
-    local autoBuyFeeder = Context.autoBuyFeeder
-    local delayBuy = Context.delayBuy
-    local autoUpgradeFeeder = Context.autoUpgradeFeeder
-    local delayUpgrade = Context.delayUpgrade
-    local autoCollectNestEggs = Context.autoCollectNestEggs
-    local autoClaimIncubator = Context.autoClaimIncubator
-    local autoPutIncubator = Context.autoPutIncubator
-    local autoUpgradeIncubator = Context.autoUpgradeIncubator
-    local delayUpgradeIncubator = Context.delayUpgradeIncubator
-    local selectedChickenName = Context.selectedChickenName
-    local selectedChickenId = Context.selectedChickenId
-    local chickenDropdown = Context.chickenDropdown
-
 -- [TAB: COOP]
 -- ==============================================================================
 do

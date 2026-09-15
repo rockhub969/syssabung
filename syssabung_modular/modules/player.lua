@@ -6,11 +6,6 @@ return function(Context, PlayerTab)
     local saveConfig = Context.saveConfig
     local parseToggle = Context.parseToggle
     local cleanESP = Context.cleanESP
-    local espPlayerEnabled = Context.espPlayerEnabled
-    local espEggEnabled = Context.espEggEnabled
-    local espScrapEnabled = Context.espScrapEnabled
-    local streamerMode = Context.streamerMode
-    local fakeName = Context.fakeName
 
 -- [TAB 5: PLAYER]
 -- ==============================================================================

@@ -15,9 +15,6 @@ return function(Context, MiscTab, WebhookTab)
     local parseToggle = Context.parseToggle
     local chickenMap = Context.chickenMap
     local chickenNames = Context.chickenNames
-    local webhookUrl = Context.webhookUrl
-    local webhookRebirthEnabled = Context.webhookRebirthEnabled
-    local triggerWebhookRebirthEvent = Context.triggerWebhookRebirthEvent
 
 -- [12] TAB MISC - SERVER MANAGEMENT
 -- ==============================================================================

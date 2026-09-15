@@ -1,5 +1,5 @@
 -- ==============================================================================
---              SYSHUB | MODUL FARM (REBIRTH, TOWER, SWEEP, UFO, ARENA)
+--              SYSHUB | MODUL FARM (REBIRTH, TOWER, SWEEP, UFO, ARENA, BOSS)
 -- ==============================================================================
 return function(Context, FarmTab)
     local player = Context.player

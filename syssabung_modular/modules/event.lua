@@ -1,5 +1,5 @@
 -- ==============================================================================
---              SYSHUB | MODUL EVENT (JURASSIC & AUTO CHICKEN BOSS)
+--              SYSHUB | MODUL EVENT (JURASSIC, UFO & CHICKEN BOSS)
 -- ==============================================================================
 return function(Context, EventTab)
     local player = Context.player
