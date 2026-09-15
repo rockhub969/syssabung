@@ -11,7 +11,7 @@
 --    - Salin folder 'syssabung_modular' ke dalam folder 'workspace' executor Anda.
 --    - Eksekusi: loadstring(readfile("syssabung_modular/loader.lua"))()
 
-local GITHUB_BASE = "https://raw.githubusercontent.com/farhan/syssabung/main/syssabung_modular/"
+local GITHUB_BASE = "https://raw.githubusercontent.com/rockhub969/syssabung/main/syssabung_modular/"
 local LOCAL_FOLDER = "syssabung_modular/"
 
 local function fetchSource(relPath)
