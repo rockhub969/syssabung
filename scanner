@@ -1,0 +1,843 @@
+-- ==============================================================================
+--         SYSHUB | ROBLOX UNIVERSAL GAME REVERSE-ENGINEERING & SCRIPT DUMPER
+--                 (ONE-CLICK COMPREHENSIVE SCRIPT GENERATOR)
+-- ==============================================================================
+-- 1 FITUR / BUTTON UNTUK MENGAMBIL SEMUA KEBUTUHAN PEMBUATAN SCRIPT:
+--   1. Game Info (PlaceId, JobId, UniverseId, Nama Game)
+--   2. Data Pemain (leaderstats, Player/Character Attributes, ValueBase inventory/stats)
+--   3. Remote (Seluruh RemoteEvent & RemoteFunction + Wrapper siap pakai)
+--   4. Parameter (Live Parameter Sniffer untuk menangkap argumen FireServer/InvokeServer)
+--   5. Atribut & Nilai (Seluruh atribut objek dan konfigurasi game)
+--   6. Koordinat & Jarak (Titik-titik penting di map: Shop, Spawn, Chest, NPC, Prompt)
+-- ==============================================================================
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local localPlayer = Players.LocalPlayer
+local mouse = localPlayer:GetMouse()
+local camera = Workspace.CurrentCamera
+
+-- Executor Global Compatibility (Mencegah Luau Linter TypeError: Unknown global)
+local env = (type(getgenv) == "function" and getgenv()) or _G
+local syn = (type(env) == "table" and env.syn) or (type(rawget) == "function" and rawget(_G, "syn"))
+local Clipboard = (type(env) == "table" and env.Clipboard) or (type(rawget) == "function" and rawget(_G, "Clipboard"))
+local setclipboard = (type(setclipboard) == "function" and setclipboard) or (type(env) == "table" and env.setclipboard)
+local toclipboard = (type(toclipboard) == "function" and toclipboard) or (type(env) == "table" and env.toclipboard)
+local rconsoleprint = (type(rconsoleprint) == "function" and rconsoleprint) or (type(env) == "table" and env.rconsoleprint)
+local hookmetamethod = (type(hookmetamethod) == "function" and hookmetamethod) or (type(env) == "table" and env.hookmetamethod)
+local newcclosure = (type(newcclosure) == "function" and newcclosure) or (type(env) == "table" and env.newcclosure)
+local getnamecallmethod = (type(getnamecallmethod) == "function" and getnamecallmethod) or (type(env) == "table" and env.getnamecallmethod)
+
+-- ==============================================================================
+-- [1] PEMUATAN PUSTAKA WINDUI RESMI
+-- ==============================================================================
+local WindUI = nil
+local successUI, resultUI = pcall(function()
+    return loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+end)
+
+if successUI and resultUI then
+    WindUI = resultUI
+else
+    local okRaw, rawResult = pcall(function()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+    end)
+    if okRaw and rawResult then
+        WindUI = rawResult
+    end
+end
+
+if not WindUI then
+    warn("[SysHub ERROR]: Gagal memuat library WindUI dari GitHub! Periksa koneksi internet.")
+    return
+end
+
+local Window = nil
+local successWindow, resultWindow = pcall(function()
+    return WindUI:CreateWindow({
+        Title = "SysHub - Scanner Game",
+        Icon = "egg",
+        Author = "Premium Version",
+        Folder = "SysHub",
+        Size = UDim2.fromOffset(640, 420),
+        MinSize = Vector2.new(480, 320),
+        MaxSize = Vector2.new(950, 650),
+        Transparent = true,
+        NewElements = true,
+        Theme = "Sky",
+        Resizable = true,
+        SideBarWidth = 160,
+        BackgroundImageTransparency = 0.42,
+        HideSearchBar = true,
+        ScrollBarEnabled = true
+    })
+end)
+
+if successWindow and resultWindow then
+    Window = resultWindow
+else
+    warn("[SysHub ERROR]: Gagal membuat Window: " .. tostring(resultWindow))
+    return
+end
+
+pcall(function()
+    Window:EditOpenButton({
+        Title = "SysHub - Scanner Game",
+        Icon = "egg",
+        CornerRadius = UDim.new(0, 30),
+        StrokeThickness = 1.5,
+        Color = ColorSequence.new(Color3.fromHex("87CEFA"), Color3.fromHex("191970")),
+        OnlyMobile = false,
+        Enabled = true,
+        Draggable = true
+    })
+end)
+
+task.spawn(function() pcall(function() loadstring(game:HttpGet("https://rockhub.net/ntahlahwog3a09spk/iconsys.lua"))()(Window) end) end)
+
+-- ------------------------------------------------------------------------------
+-- HELPER: Notifikasi WindUI
+-- ------------------------------------------------------------------------------
+local function notify(title, content)
+    pcall(function()
+        if WindUI and WindUI.Notify then
+            WindUI:Notify({
+                Title = title or "Scanner Game",
+                Content = content or "",
+                Duration = 3
+            })
+        end
+    end)
+end
+
+local function parseToggle(state)
+    if type(state) == "boolean" then
+        return state
+    end
+    if type(state) == "table" and state.Value ~= nil then
+        return state.Value == true
+    end
+    return state == true
+end
+
+-- ------------------------------------------------------------------------------
+-- HELPER: Clipboard Universal & Output Console
+-- ------------------------------------------------------------------------------
+local function copyToClipboard(text)
+    local str = tostring(text)
+    -- 1. Salin ke Clipboard OS (bisa langsung Ctrl + V di editor teks)
+    local fn = setclipboard or toclipboard or (syn and syn.write_clipboard) or (Clipboard and Clipboard.set)
+    if fn then
+        pcall(fn, str)
+    end
+
+    -- 2. Cetak ke Output Executor & Console Roblox (F9)
+    print("\n================ [SCANNER GAME OUTPUT] ================\n" .. str .. "\n=======================================================\n")
+
+    -- 3. Cetak ke Console Eksternal Executor jika ada (rconsoleprint)
+    if rconsoleprint then
+        pcall(rconsoleprint, "\n[SCANNER GAME OUTPUT]:\n" .. str .. "\n\n")
+    end
+    notify("Tersalin ke Clipboard!", "Data telah disalin dan dicetak ke output console.")
+    return true
+end
+
+-- ------------------------------------------------------------------------------
+-- HELPER: Format Path Objek ke Format Lua Valid
+-- ------------------------------------------------------------------------------
+local function getObjectPath(instance)
+    if not instance then
+        return "nil"
+    end
+    if instance == game then
+        return "game"
+    end
+    if instance == Workspace then
+        return 'game:GetService("Workspace")'
+    end
+
+    local parts = {}
+    local current = instance
+
+    while current and current ~= game do
+        local parent = current.Parent
+        local name = current.Name
+        local validIdent = name:match("^[%a_][%w_]*$") and not (
+            name == "and" or name == "break" or name == "do" or name == "else" or
+            name == "elseif" or name == "end" or name == "false" or name == "for" or
+            name == "function" or name == "if" or name == "in" or name == "local" or
+            name == "nil" or name == "not" or name == "or" or name == "repeat" or
+            name == "return" or name == "then" or name == "true" or name == "until" or name == "while"
+        )
+
+        if parent == game then
+            table.insert(parts, 1, string.format('game:GetService("%s")', name))
+            break
+        elseif parent == Workspace and #parts == 0 then
+            if validIdent then
+                table.insert(parts, 1, "workspace." .. name)
+            else
+                table.insert(parts, 1, string.format('workspace[%q]', name))
+            end
+            break
+        else
+            if validIdent then
+                table.insert(parts, 1, "." .. name)
+            else
+                table.insert(parts, 1, string.format('[%q]', name))
+            end
+        end
+        current = parent
+    end
+
+    local pathStr = table.concat(parts, "")
+    if pathStr:sub(1, 1) == "." then
+        pathStr = "game" .. pathStr
+    end
+    return pathStr
+end
+
+-- ------------------------------------------------------------------------------
+-- HELPER: Serializer Data & Parameter ke Format Kode Lua
+-- ------------------------------------------------------------------------------
+local function serializeValue(val, indentLevel, visited)
+    indentLevel = indentLevel or 0
+    visited = visited or {}
+    local indent = string.rep("  ", indentLevel)
+    local nextIndent = string.rep("  ", indentLevel + 1)
+    local t = typeof(val)
+
+    if t == "nil" then
+        return "nil"
+    elseif t == "boolean" then
+        return val and "true" or "false"
+    elseif t == "number" then
+        if val ~= val then
+            return "0/0 --[[NaN]]"
+        end
+        if val == math.huge then
+            return "math.huge"
+        end
+        if val == -math.huge then
+            return "-math.huge"
+        end
+        return tostring(val)
+    elseif t == "string" then
+        return string.format("%q", val)
+    elseif t == "Vector3" then
+        return string.format("Vector3.new(%.3f, %.3f, %.3f)", val.X, val.Y, val.Z)
+    elseif t == "Vector2" then
+        return string.format("Vector2.new(%.3f, %.3f)", val.X, val.Y)
+    elseif t == "CFrame" then
+        local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = val:GetComponents()
+        return string.format("CFrame.new(%.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f)",
+            x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22)
+    elseif t == "Color3" then
+        return string.format("Color3.fromRGB(%d, %d, %d)", math.floor(val.R * 255), math.floor(val.G * 255), math.floor(val.B * 255))
+    elseif t == "BrickColor" then
+        return string.format("BrickColor.new(%q)", val.Name)
+    elseif t == "UDim2" then
+        return string.format("UDim2.new(%.3f, %d, %.3f, %d)", val.X.Scale, val.X.Offset, val.Y.Scale, val.Y.Offset)
+    elseif t == "UDim" then
+        return string.format("UDim.new(%.3f, %d)", val.Scale, val.Offset)
+    elseif t == "Instance" then
+        return getObjectPath(val)
+    elseif t == "EnumItem" then
+        return tostring(val)
+    elseif t == "table" then
+        if visited[val] then
+            return '"--[[Circular Reference]]"'
+        end
+        visited[val] = true
+
+        local isArray = true
+        local maxIdx = 0
+        local count = 0
+        for k, _ in pairs(val) do
+            count = count + 1
+            if type(k) == "number" and k > 0 and math.floor(k) == k then
+                if k > maxIdx then maxIdx = k end
+            else
+                isArray = false
+            end
+        end
+        if count ~= maxIdx then isArray = false end
+
+        if count == 0 then
+            return "{}"
+        end
+
+        local lines = {"{\n"}
+        if isArray then
+            for i = 1, maxIdx do
+                table.insert(lines, string.format("%s%s,\n", nextIndent, serializeValue(val[i], indentLevel + 1, visited)))
+            end
+        else
+            for k, v in pairs(val) do
+                local keyStr
+                if type(k) == "string" and k:match("^[%a_][%w_]*$") then
+                    keyStr = string.format("[%q]", k)
+                else
+                    keyStr = string.format("[%s]", serializeValue(k, 0, visited))
+                end
+                table.insert(lines, string.format("%s%s = %s,\n", nextIndent, keyStr, serializeValue(v, indentLevel + 1, visited)))
+            end
+        end
+        table.insert(lines, indent .. "}")
+        return table.concat(lines, "")
+    else
+        return string.format("%q --[[%s]]", tostring(val), t)
+    end
+end
+
+-- ------------------------------------------------------------------------------
+-- HELPER: Posisi Karakter & Jarak (Distance)
+-- ------------------------------------------------------------------------------
+local function getLocalPlayerPosition()
+    local char = localPlayer.Character
+    local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+    return hrp and hrp.Position or nil
+end
+
+local function getInstancePosition(inst)
+    if not inst then
+        return nil, nil, nil
+    end
+    if inst:IsA("BasePart") then
+        return inst.Position, inst.CFrame, inst.Size
+    elseif inst:IsA("Model") then
+        local pivot = inst:GetPivot()
+        local cf, sz = pcall(function() return inst:GetBoundingBox() end)
+        return pivot.Position, pivot, (sz or Vector3.new(4, 4, 4))
+    end
+    return nil, nil, nil
+end
+
+-- ==============================================================================
+-- LIVE REMOTE PARAMETER SNIFFER ENGINE
+-- ==============================================================================
+local isSnifferActive = true
+local capturedRemotes = {}
+local lastCapturedCall = ""
+local onRemoteCapturedCallback = nil
+
+local function recordRemoteCall(remote, method, args)
+    if not isSnifferActive then
+        return
+    end
+    local rPath = getObjectPath(remote)
+    local sArgs = {}
+    for _, a in ipairs(args) do
+        table.insert(sArgs, serializeValue(a, 0))
+    end
+    local paramText = table.concat(sArgs, ", ")
+    local fullCall = string.format("%s:%s(%s)", rPath, method, paramText)
+    lastCapturedCall = fullCall
+
+    local logItem = {
+        Time = os.date("%X"),
+        Remote = remote,
+        Name = remote.Name,
+        Method = method,
+        ParamText = paramText,
+        CallCode = fullCall,
+        Args = args
+    }
+
+    table.insert(capturedRemotes, 1, logItem)
+    if #capturedRemotes > 100 then table.remove(capturedRemotes) end
+
+    -- Cetak ke Console secara real-time
+    print(string.format("[SNIFFER] %s", fullCall))
+
+    if onRemoteCapturedCallback then
+        pcall(onRemoteCapturedCallback, logItem)
+    end
+end
+
+-- Hook metamethod untuk menangkap panggilan remote game
+pcall(function()
+    local oldNamecall = nil
+    oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if (method == "FireServer" or method == "InvokeServer") and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) then
+            local args = {...}
+            task.spawn(function()
+                recordRemoteCall(self, method, args)
+            end)
+        end
+        return oldNamecall(self, ...)
+    end))
+end)
+
+-- Fallback remote listener
+task.spawn(function()
+    local function hookRemote(obj)
+        if obj:IsA("RemoteEvent") then
+            obj.OnClientEvent:Connect(function(...)
+                recordRemoteCall(obj, "OnClientEvent", {...})
+            end)
+        end
+    end
+    for _, desc in ipairs(ReplicatedStorage:GetDescendants()) do
+        if desc:IsA("RemoteEvent") then pcall(hookRemote, desc) end
+    end
+    ReplicatedStorage.DescendantAdded:Connect(function(desc)
+        if desc:IsA("RemoteEvent") then pcall(hookRemote, desc) end
+    end)
+end)
+
+-- ==============================================================================
+-- FUNGSI MASTER DUMP ENGINE (PENGAMBIL SEMUA DATA UNTUK SCRIPT DEVELOPMENT)
+-- ==============================================================================
+local lastGeneratedScriptTemplate = ""
+
+local function generateComprehensiveScriptDump()
+    notify("Scanner Game", "Sedang memindai seluruh data, parameter, remote, dan koordinat...")
+
+    local char = localPlayer.Character
+    local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local myPos = hrp and hrp.Position or Vector3.new(0, 0, 0)
+    local myCF = hrp and hrp.CFrame or CFrame.new(0, 0, 0)
+
+    -- Nama Game
+    local gameName = "Unknown Game"
+    pcall(function()
+        local info = MarketplaceService:GetProductInfo(game.PlaceId)
+        if info and info.Name then gameName = info.Name end
+    end)
+
+    local lines = {}
+    local function add(str) table.insert(lines, str or "") end
+
+    add("-- ==============================================================================")
+    add(string.format("--            SCRIPT BOILERPLATE & DATA DUMP: %s", gameName:upper()))
+    add("--          (Generated by SysHub Universal Scanner for Script Developers)         ")
+    add("-- ==============================================================================")
+    add(string.format("-- PlaceId      : %d", game.PlaceId))
+    add(string.format("-- JobId        : %q", tostring(game.JobId)))
+    add(string.format("-- UniverseId   : %d", game.GameId))
+    add(string.format("-- Waktu Dump   : %s", os.date("%Y-%m-%d %X")))
+    add("-- ==============================================================================")
+    add("")
+    add("-- [1] BASIC SERVICES & PLAYER REFERENCES")
+    add('local Players = game:GetService("Players")')
+    add('local Workspace = game:GetService("Workspace")')
+    add('local ReplicatedStorage = game:GetService("ReplicatedStorage")')
+    add('local TweenService = game:GetService("TweenService")')
+    add('local TeleportService = game:GetService("TeleportService")')
+    add("")
+    add("local player = Players.LocalPlayer")
+    add("local character = player.Character or player.CharacterAdded:Wait()")
+    add('local hrp = character:WaitForChild("HumanoidRootPart")')
+    add('local humanoid = character:WaitForChild("Humanoid")')
+    add("")
+
+    -- [2] REMOTES MAP
+    add("-- [2] GAME REMOTES (RemoteEvent & RemoteFunction)")
+    add("local Remotes = {")
+    local remotesFound = {}
+    local function scanRemotes(parent)
+        pcall(function()
+            for _, desc in ipairs(parent:GetDescendants()) do
+                if desc:IsA("RemoteEvent") or desc:IsA("RemoteFunction") then
+                    local cleanName = desc.Name:gsub("[^%w_]", "_")
+                    table.insert(remotesFound, {
+                        Name = desc.Name,
+                        Ident = cleanName,
+                        Class = desc.ClassName,
+                        Path = getObjectPath(desc)
+                    })
+                end
+            end
+        end)
+    end
+    scanRemotes(ReplicatedStorage)
+    scanRemotes(Workspace)
+
+    for _, r in ipairs(remotesFound) do
+        add(string.format("    [%q] = %s, -- [[%s]]", r.Name, r.Path, r.Class))
+    end
+    add("}")
+    add("")
+
+    -- Helper pemanggilan remote
+    add("-- Helper Fungsi Memanggil Remote Secara Aman")
+    add("local function callRemote(remoteName, ...)")
+    add("    local remote = Remotes[remoteName]")
+    add("    if remote then")
+    add('        if remote:IsA("RemoteEvent") then')
+    add("            remote:FireServer(...)")
+    add('        elseif remote:IsA("RemoteFunction") then')
+    add("            return remote:InvokeServer(...)")
+    add("        end")
+    add("    else")
+    add('        warn("[SysHub]: Remote tidak ditemukan: " .. tostring(remoteName))')
+    add("    end")
+    add("end")
+    add("")
+
+    -- [3] PARAMETER TERAKHIR YANG TERTANGKAP OLEH SNIFFER
+    add("-- [3] PARAMETER PANGGILAN REMOTE TERTANGKAP (LIVE SNIFFER)")
+    if #capturedRemotes > 0 then
+        add("local CapturedRemoteCalls = {")
+        for i = 1, math.min(20, #capturedRemotes) do
+            local cr = capturedRemotes[i]
+            add(string.format("    -- [%s] %s (%s)", cr.Time, cr.Name, cr.Method))
+            add(string.format("    [%d] = function()", i))
+            add(string.format("        %s", cr.CallCode))
+            add("    end,")
+        end
+        add("}")
+    else
+        add("-- (Belum ada panggilan remote yang tertangkap saat tombol ditekan. Mainkan game/klik aksi untuk menangkap parameter.)")
+        add("local CapturedRemoteCalls = {}")
+    end
+    add("")
+
+    -- [4] PLAYER STATS, LEADERSTATS & ATRIBUT
+    add("-- [4] PLAYER DATA, ATRIBUT & STATS")
+    local pAttrs = localPlayer:GetAttributes()
+    local cAttrs = char and char:GetAttributes() or {}
+
+    add(string.format("local PlayerAttributes = %s", serializeValue(pAttrs, 0)))
+    add(string.format("local CharacterAttributes = %s", serializeValue(cAttrs, 0)))
+
+    -- Leaderstats
+    local ls = localPlayer:FindFirstChild("leaderstats")
+    local lsTable = {}
+    if ls then
+        for _, s in ipairs(ls:GetChildren()) do
+            if s:IsA("ValueBase") then
+                lsTable[s.Name] = s.Value
+            end
+        end
+    end
+    add(string.format("local Leaderstats = %s", serializeValue(lsTable, 0)))
+
+    -- Folder Data / Stats lain di Player
+    local otherValues = {}
+    for _, child in ipairs(localPlayer:GetChildren()) do
+        if child.Name ~= "leaderstats" and (child:IsA("Folder") or child:IsA("Configuration")) then
+            local fData = {}
+            for _, v in ipairs(child:GetChildren()) do
+                if v:IsA("ValueBase") then
+                    fData[v.Name] = v.Value
+                end
+            end
+            if next(fData) ~= nil then otherValues[child.Name] = fData end
+        end
+    end
+    if next(otherValues) ~= nil then
+        add(string.format("local OtherPlayerData = %s", serializeValue(otherValues, 0)))
+    end
+    add("")
+
+    -- [5] WORKSPACE POINTS OF INTEREST (KOORDINAT & JARAK TERDEKAT)
+    add("-- [5] KOORDINAT & LOKASI PENTING (POINTS OF INTEREST)")
+    add("local Locations = {")
+    add(string.format('    ["PlayerSpawnCurrent"] = CFrame.new(%.3f, %.3f, %.3f),', myCF.X, myCF.Y, myCF.Z))
+
+    local keywords = {"spawn", "shop", "store", "merchant", "buy", "sell", "chest", "crate", "box", "egg", "pet", "portal", "door", "teleport", "altar", "npc", "quest", "boss", "mob", "plot", "base", "coop"}
+    local scannedPOIs = {}
+
+    pcall(function()
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if (obj:IsA("Model") or obj:IsA("BasePart")) and not obj:IsDescendantOf(char) then
+                local oName = obj.Name:lower()
+                local matched = false
+                for _, kw in ipairs(keywords) do
+                    if oName:find(kw) then
+                        matched = true
+                        break
+                    end
+                end
+
+                if matched then
+                    local pos, cf = getInstancePosition(obj)
+                    if pos then
+                        local dist = (Vector3.new(pos.X, pos.Y, pos.Z) - myPos).Magnitude
+                        -- Ambil atribut jika ada
+                        local attrs = obj:GetAttributes()
+                        local hasA = false
+                        for _ in pairs(attrs) do
+                            hasA = true
+                            break
+                        end
+
+                        table.insert(scannedPOIs, {
+                            Name = obj.Name,
+                            Class = obj.ClassName,
+                            Distance = dist,
+                            Position = pos,
+                            CFrame = cf or CFrame.new(pos),
+                            Path = getObjectPath(obj),
+                            Attributes = hasA and attrs or nil
+                        })
+                    end
+                end
+            end
+        end
+    end)
+
+    table.sort(scannedPOIs, function(a, b) return a.Distance < b.Distance end)
+
+    -- Batasi maksimal 60 POI terdekat agar rapi & relevan
+    local maxPoi = math.min(60, #scannedPOIs)
+    for idx = 1, maxPoi do
+        local poi = scannedPOIs[idx]
+        local key = string.format("%s_%d", poi.Name:gsub("[^%w_]", "_"), idx)
+        add(string.format("    [%q] = {", key))
+        add(string.format("        Name = %q,", poi.Name))
+        add(string.format("        Distance = %.2f, -- studs", poi.Distance))
+        add(string.format("        Position = Vector3.new(%.3f, %.3f, %.3f),", poi.Position.X, poi.Position.Y, poi.Position.Z))
+        add(string.format("        CFrame = CFrame.new(%.3f, %.3f, %.3f),", poi.CFrame.X, poi.CFrame.Y, poi.CFrame.Z))
+        add(string.format("        Path = %s,", poi.Path))
+        if poi.Attributes then
+            add(string.format("        Attributes = %s,", serializeValue(poi.Attributes, 0)))
+        end
+        add("    },")
+    end
+    add("}")
+    add("")
+
+    -- [6] PROXIMITY PROMPT / CLICK DETECTOR (INTERAKSI OBJEK)
+    add("-- [6] INTERAKTIF: PROXIMITY PROMPTS & CLICK DETECTORS")
+    local promptsFound = {}
+    pcall(function()
+        for _, desc in ipairs(Workspace:GetDescendants()) do
+            if desc:IsA("ProximityPrompt") or desc:IsA("ClickDetector") then
+                local parentPart = desc.Parent
+                local pPos = parentPart and (parentPart:IsA("BasePart") and parentPart.Position or (parentPart:IsA("Model") and parentPart:GetPivot().Position))
+                local dist = pPos and (pPos - myPos).Magnitude or 99999
+                table.insert(promptsFound, {
+                    Name = desc.Name,
+                    Class = desc.ClassName,
+                    ActionText = desc:IsA("ProximityPrompt") and desc.ActionText or "Click",
+                    ObjectText = desc:IsA("ProximityPrompt") and desc.ObjectText or "",
+                    Distance = dist,
+                    Path = getObjectPath(desc)
+                })
+            end
+        end
+    end)
+    table.sort(promptsFound, function(a, b) return a.Distance < b.Distance end)
+
+    add("local InteractivePrompts = {")
+    for idx = 1, math.min(25, #promptsFound) do
+        local p = promptsFound[idx]
+        add(string.format("    [%d] = { Name = %q, Action = %q, Object = %q, Distance = %.1f, Path = %s },",
+            idx, p.Name, p.ActionText, p.ObjectText, p.Distance, p.Path))
+    end
+    add("}")
+    add("")
+    add("-- ==============================================================================")
+    add("--                      END OF GENERATED SCRIPT TEMPLATE                          ")
+    add("-- ==============================================================================")
+
+    local fullReport = table.concat(lines, "\n")
+    lastGeneratedScriptTemplate = fullReport
+
+    -- Cetak ke Output & Salin ke Clipboard
+    copyToClipboard(fullReport)
+
+    notify("Sukses!", string.format("Data game lengkap diambil! (%d remote, %d lokasi, %d prompt). Cek Output / Paste!", #remotesFound, #scannedPOIs, #promptsFound))
+    return gameName, #remotesFound, #scannedPOIs, #promptsFound, fullReport
+end
+
+-- ==============================================================================
+-- ANTARMUKA PENGGUNA WINDUI (FOKUS 1-CLICK DUMP & SNIFFER)
+-- ==============================================================================
+
+-- [TAB 1]: ⚡ ONE-CLICK SCRIPT DUMPER (TAB UTAMA)
+local TabMain = Window:Tab({ Title = "Script Dumper", Icon = "zap", Locked = false })
+local MainActionSec = TabMain:Section({ Title = "1-Click Script Development Dumper", Opened = true })
+local SummarySec = TabMain:Section({ Title = "Ringkasan Data Terakhir", Opened = true })
+
+local summaryPara = SummarySec:Paragraph({
+    Title = "Status Dumper",
+    Desc = "Klik tombol '⚡ AMBIL SEMUA DATA SEKARANG' di bawah.\n\nSekali klik akan mengambil seluruh:\n- Data & info game\n- Semua remote game\n- Parameter live sniffer\n- Atribut & nilai objek\n- Koordinat & jarak lokasi terdekat\n\nOutput langsung tercetak di Output Executor/F9 & tersalin ke Clipboard."
+})
+
+local previewPara = SummarySec:Paragraph({
+    Title = "Pratinjau Kode Dihasilkan",
+    Desc = "Belum ada data. Klik tombol di atas untuk membuat template script."
+})
+
+MainActionSec:Button({
+    Title = "⚡ AMBIL SEMUA DATA SEKARANG (1-CLICK DUMP)",
+    Desc = "Satu kali klik: Menghasilkan seluruh template script, data, parameter, remote, atribut, dan koordinat!",
+    Callback = function()
+        local gName, rCount, pCount, promptCount, fullCode = generateComprehensiveScriptDump()
+        summaryPara:SetTitle("Dump Berhasil: " .. gName)
+        summaryPara:SetDesc(string.format(
+            "Waktu: %s\n" ..
+            "Game: %s (PlaceId: %d)\n" ..
+            "Remote Ditemukan: %d remote\n" ..
+            "Lokasi Terpetakan: %d titik (Shop/Spawn/Chest/NPC)\n" ..
+            "Interaktif: %d ProximityPrompt / ClickDetector\n\n" ..
+            "Status: Laporan lengkap telah disalin ke Clipboard (Ctrl+V) & tercetak di Output Console!",
+            os.date("%X"), gName, game.PlaceId, rCount, pCount, promptCount
+        ))
+        previewPara:SetTitle("Pratinjau Template Script")
+        previewPara:SetDesc(fullCode:sub(1, 350) .. "\n... (Gunakan tombol 'Salin Ulang Template' untuk teks lengkap)")
+    end
+})
+
+MainActionSec:Button({
+    Title = "📋 Salin Ulang Template Script Lengkap",
+    Desc = "Menyalin kembali teks kode template script yang sudah diambil ke clipboard.",
+    Callback = function()
+        if lastGeneratedScriptTemplate ~= "" then
+            copyToClipboard(lastGeneratedScriptTemplate)
+        else
+            notify("Peringatan", "Belum ada data dump! Klik tombol 'AMBIL SEMUA DATA SEKARANG' terlebih dahulu.")
+        end
+    end
+})
+
+
+-- [TAB 2]: 📡 LIVE REMOTE PARAMETER SNIFFER
+local TabSniffer = Window:Tab({ Title = "Parameter Sniffer", Icon = "radio", Locked = false })
+local SnifferControlSec = TabSniffer:Section({ Title = "Kontrol Live Parameter Sniffer", Opened = true })
+local SnifferLogsSec = TabSniffer:Section({ Title = "Panggilan Remote Terakhir", Opened = true })
+
+local lastSniffPara = SnifferLogsSec:Paragraph({
+    Title = "Panggilan Remote Terakhir",
+    Desc = "Belum ada pemanggilan remote game. Coba berinteraksi dengan game (beli item, serang, buka peti, dll.)."
+})
+
+local recentSniffPara = SnifferLogsSec:Paragraph({
+    Title = "5 Pemanggilan Terakhir",
+    Desc = "Menunggu pemanggilan remote..."
+})
+
+onRemoteCapturedCallback = function(item)
+    pcall(function()
+        lastSniffPara:SetTitle(string.format("[%s] %s (%s)", item.Time, item.Name, item.Method))
+        lastSniffPara:SetDesc(item.CallCode)
+
+        local lines = {}
+        for i = 1, math.min(5, #capturedRemotes) do
+            local cr = capturedRemotes[i]
+            local shortArgs = cr.ParamText:sub(1, 45) .. (#cr.ParamText > 45 and "..." or "")
+            table.insert(lines, string.format("#%d [%s] %s:%s(%s)", i, cr.Time, cr.Name, cr.Method, shortArgs))
+        end
+        recentSniffPara:SetDesc(table.concat(lines, "\n"))
+    end)
+end
+
+SnifferControlSec:Toggle({
+    Title = "Aktifkan Live Parameter Sniffer",
+    Desc = "Merekam parameter pemanggilan remote saat Anda bermain game secara real-time.",
+    Value = true,
+    Callback = function(state)
+        isSnifferActive = parseToggle(state)
+        notify("Sniffer", isSnifferActive and "Sniffer diaktifkan." or "Sniffer dijeda.")
+    end
+})
+
+SnifferControlSec:Button({
+    Title = "📋 Salin Panggilan Remote Terakhir (Lua Code)",
+    Callback = function()
+        if lastCapturedCall ~= "" then
+            copyToClipboard(lastCapturedCall)
+        else
+            notify("Info", "Belum ada panggilan remote yang tertangkap.")
+        end
+    end
+})
+
+SnifferControlSec:Button({
+    Title = "📋 Export Seluruh Riwayat Parameter Sniffer",
+    Callback = function()
+        if #capturedRemotes == 0 then
+            notify("Info", "Riwayat remote masih kosong.")
+            return
+        end
+        local lines = {"-- ==============================================================================",
+                       "-- RIWAYAT PEMANGGILAN PARAMETER REMOTE (LIVE SNIFFER)",
+                       "-- =============================================================================="}
+        for idx, it in ipairs(capturedRemotes) do
+            table.insert(lines, string.format("-- [%s] #%d %s", it.Time, idx, it.Name))
+            table.insert(lines, it.CallCode)
+        end
+        copyToClipboard(table.concat(lines, "\n\n"))
+    end
+})
+
+SnifferControlSec:Button({
+    Title = "🗑️ Bersihkan Log Sniffer",
+    Callback = function()
+        table.clear(capturedRemotes)
+        lastCapturedCall = ""
+        lastSniffPara:SetTitle("Panggilan Remote Terakhir")
+        lastSniffPara:SetDesc("Log telah dibersihkan.")
+        recentSniffPara:SetDesc("Menunggu pemanggilan remote...")
+        notify("Sniffer", "Log berhasil dibersihkan.")
+    end
+})
+
+
+-- [TAB 3]: ℹ️ GAME & PLAYER INFO CEPAT
+local TabInfo = Window:Tab({ Title = "Info Cepat", Icon = "info", Locked = false })
+local QuickInfoSec = TabInfo:Section({ Title = "Informasi Instan", Opened = true })
+
+local quickGamePara = QuickInfoSec:Paragraph({
+    Title = "ID Game",
+    Desc = string.format("PlaceId: %d\nJobId: %s\nUniverseId: %d", game.PlaceId, tostring(game.JobId), game.GameId)
+})
+
+local quickCoordPara = QuickInfoSec:Paragraph({
+    Title = "Koordinat Player",
+    Desc = "Position: ...\nCFrame: ..."
+})
+
+QuickInfoSec:Button({
+    Title = "Salin CFrame Player Saat Ini",
+    Callback = function()
+        local c = localPlayer.Character
+        local root = c and c:FindFirstChild("HumanoidRootPart")
+        if root then
+            local cf = root.CFrame
+            local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
+            copyToClipboard(string.format("CFrame.new(%.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f)",
+                x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22))
+        end
+    end
+})
+
+QuickInfoSec:Button({
+    Title = "Salin Kode Rejoin Server Ini",
+    Callback = function()
+        copyToClipboard(string.format('game:GetService("TeleportService"):TeleportToPlaceInstance(%d, %q, game.Players.LocalPlayer)',
+            game.PlaceId, tostring(game.JobId)))
+    end
+})
+
+task.spawn(function()
+    while true do
+        task.wait(1.0)
+        pcall(function()
+            local p = getLocalPlayerPosition()
+            local c = localPlayer.Character
+            local root = c and c:FindFirstChild("HumanoidRootPart")
+            if p and root then
+                quickCoordPara:SetDesc(string.format("Position: Vector3.new(%.2f, %.2f, %.2f)\nCFrame: CFrame.new(%.2f, %.2f, %.2f)",
+                    p.X, p.Y, p.Z, root.Position.X, root.Position.Y, root.Position.Z))
+            end
+        end)
+    end
+end)
+
+print("[SysHub Scanner]: Dumper 1-Klik siap digunakan!")
+notify("SysHub Scanner Siap!", "Buka tab 'Script Dumper' dan tekan tombol 1-Klik untuk mengambil semua data game.")
